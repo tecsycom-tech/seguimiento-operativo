@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SEGUIMIENTO OPERATIVO | TECSYCOM - WIN</title>
+  <!-- Ícono en la pestaña referente a red / fibra óptica / campo -->
+  <link
+    rel="icon"
+    type="image/svg+xml"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23FF5A0A'/%3E%3Cpath d='M32 14a18 18 0 0 0-12.73 30.73l3.54-3.54A13 13 0 1 1 45 32h5a18 18 0 0 0-18-18zm0 10a8 8 0 1 0 8 8h-5a3 3 0 1 1-3-3v-5zm0 16l10 10-3.54 3.54-10-10L32 40z' fill='%23ffffff'/%3E%3C/svg%3E"
+  />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <style>
+    :root {
+      --primary: #FF5A0A;
+      --primary-hover: #e04d06;
+    }
+    body {
+      background-color: #f8fafc;
+      color: #0f172a;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+    .btn-primary {
+      background-color: var(--primary);
+      color: #ffffff;
+    }
+    .btn-primary:hover {
+      background-color: var(--primary-hover);
+    }
+    .border-primary {
+      border-color: var(--primary);
+    }
+    .text-primary {
+      color: var(--primary);
+    }
+    /* Filas compactas de una sola línea */
+    .table-compact th,
+    .table-compact td {
+      white-space: nowrap;
+      padding: 0.42rem 0.6rem;
+      font-size: 0.76rem;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- HEADER -->
+  <header class="bg-white border-b-2 border-[#FF5A0A] shadow-sm sticky top-0 z-30">
+    <div class="w-full px-3 py-2.5 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-lg bg-[#FF5A0A] flex items-center justify-center text-white font-bold shadow">
+          <i class="fa-solid fa-tower-broadcast text-sm"></i>
+        </div>
+        <div>
+          <h1 class="text-sm font-extrabold tracking-tight uppercase text-slate-900">
+            SISTEMA DE SEGUIMIENTO OPERATIVO
+          </h1>
+          <p class="text-[10px] font-medium text-slate-500 uppercase">
+            HOJA 1 &bull; TECSYCOM_WIN &bull; SINCRONIZACIÓN EN VIVO
+          </p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span id="statusIndicator" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">
+          <i class="fa-solid fa-circle text-[8px] mr-1 text-emerald-500"></i> CONECTADO
+        </span>
+        <button onclick="fetchData()" class="btn-primary px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider shadow-sm flex items-center gap-1.5 transition">
+          <i id="syncIcon" class="fa-solid fa-rotate"></i> ACTUALIZAR
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTENEDOR PRINCIPAL: BLOQUE IZQUIERDO ANCHO + BLOQUE DERECHO DELGADO -->
+  <main class="w-full px-3 py-3 flex-1 flex flex-col lg:flex-row gap-3 items-start">
+
+    <!-- BLOQUE IZQUIERDO (MÁS ANCHO Y PEGADO A LA IZQUIERDA): CONTROLES Y TABLA -->
+    <section class="flex-1 min-w-0 w-full">
+      <div class="bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm mb-3 flex flex-wrap items-center justify-between gap-2">
+        
+        <!-- Buscador -->
+        <div class="relative flex-1 min-w-[220px]">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+          <input
+            type="text"
+            id="searchInput"
+            oninput="applyFilters()"
+            placeholder="BUSCAR POR UNICODE, CODIGO, CLIENTE, DNI, REF-1 O REF-2..."
+            class="w-full pl-8 pr-3 py-1.5 text-xs font-semibold uppercase border border-slate-300 rounded-lg focus:outline-none focus:border-[#FF5A0A] focus:ring-1 focus:ring-[#FF5A0A]"
+          />
+        </div>
+
+        <!-- Filtros de Hoja, Tramo, Estado y Pendientes/Todos -->
+        <div class="flex flex-wrap items-center gap-1.5">
+          <select id="sheetFilter" onchange="applyFilters()" class="text-xs font-bold uppercase border border-slate-300 rounded-lg px-2.5 py-1.5 bg-white focus:outline-none focus:border-[#FF5A0A]">
+            <option value="ALL">HOJAS: TODAS</option>
+            <option value="Hoja 1">HOJA 1</option>
+            <option value="TECSYCOM_WIN">TECSYCOM_WIN</option>
+          </select>
+
+          <select id="tramoFilter" onchange="applyFilters()" class="text-xs font-bold uppercase border border-slate-300 rounded-lg px-2.5 py-1.5 bg-white focus:outline-none focus:border-[#FF5A0A]">
+            <option value="ALL">TRAMO: TODOS</option>
+            <option value="08AM-12PM">08AM-12PM</option>
+            <option value="12PM-16PM">12PM-16PM</option>
+            <option value="16PM-20PM">16PM-20PM</option>
+          </select>
+
+          <select id="estadoFilter" onchange="applyFilters()" class="text-xs font-bold uppercase border border-slate-300 rounded-lg px-2.5 py-1.5 bg-white focus:outline-none focus:border-[#FF5A0A]">
+            <option value="ALL">ESTADO: TODOS</option>
+            <option value="COORDINADO">COORDINADO</option>
+            <option value="FINALIZADO">FINALIZADO</option>
+            <option value="CANCELADO">CANCELADO</option>
+            <option value="AUSENTE">AUSENTE</option>
+            <option value="REPROGRAMA">REPROGRAMA</option>
+            <option value="EN CAMINO">EN CAMINO</option>
+            <option value="EN PROCESO">EN PROCESO</option>
+            <option value="TRANSFERIR">TRANSFERIR</option>
+            <option value="ZONA PELIGROSA">ZONA PELIGROSA</option>
+            <option value="PROGRAMADO">PROGRAMADO</option>
+            <option value="PLANTA">PLANTA</option>
+            <option value="DUPLICADO">DUPLICADO</option>
+            <option value="REITERATIVO">REITERATIVO</option>
+            <option value="RESCATE">RESCATE</option>
+            <option value="SIN FACILIDADES TÉCNICAS">SIN FACILIDADES TÉCNICAS</option>
+            <option value="REGESTION">REGESTION</option>
+          </select>
+
+          <div class="inline-flex rounded-lg border border-slate-300 p-0.5 bg-slate-50">
+            <button id="btnFilterAll" onclick="setStatusFilter('ALL')" class="px-2.5 py-1 rounded-md text-xs font-bold uppercase transition bg-[#FF5A0A] text-white">
+              TODOS (<span id="countAll">0</span>)
+            </button>
+            <button id="btnFilterPend" onclick="setStatusFilter('PENDIENTES')" class="px-2.5 py-1 rounded-md text-xs font-bold uppercase transition text-slate-600 hover:text-slate-900">
+              PENDIENTES (<span id="countPend">0</span>)
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TABLA DE REGISTROS -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto max-h-[76vh]">
+          <table class="w-full text-left border-collapse table-compact">
+            <thead class="bg-slate-900 text-white uppercase sticky top-0 z-10">
+              <tr>
+                <th class="text-center">ACCIÓN</th>
+                <th>HOJA</th>
+                <th>UNICODE (AG)</th>
+                <th>TRAMO (EX)</th>
+                <th>ESTADO (EU)</th>
+                <th>NEGOCIO</th>
+                <th>CODIGO</th>
+                <th>CLIENTE</th>
+                <th>DNI</th>
+                <th>DIRECCIÓN</th>
+                <th>DISTRITO</th>
+                <th>REF-1</th>
+                <th>REF-2</th>
+                <th>TÉCNICO</th>
+                <th>CEL_TÉCNICO</th>
+                <th>OBSERVACIONES (EY)</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody" class="divide-y divide-slate-200 uppercase font-medium text-slate-700">
+              <tr>
+                <td colspan="16" class="text-center py-8 text-slate-400 font-bold">
+                  <i class="fa-solid fa-spinner fa-spin mr-2 text-[#FF5A0A]"></i> CARGANDO DATOS DE GOOGLE SHEETS...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- BLOQUE DERECHO (MÁS DELGADO Y PEGADO A LA DERECHA): VISIBILIDAD DE EFECTIVIDAD POR TÉCNICO (META 65%) -->
+    <aside class="w-full lg:w-[320px] xl:w-[340px] shrink-0 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="p-3 border-b border-slate-200 bg-slate-900 text-white flex items-center justify-between gap-2">
+        <div class="min-w-0">
+          <h2 class="text-xs font-extrabold uppercase tracking-wider flex items-center gap-1.5 truncate">
+            <i class="fa-solid fa-chart-line text-[#FF5A0A]"></i> EFECTIVIDAD &bull; META 65%
+          </h2>
+          <p class="text-[10px] text-slate-300 uppercase mt-0.5 truncate">
+            CHICLAYO (3 TEC.) VS LIMA &bull; CLIC FILTRA
+          </p>
+        </div>
+        <button
+          id="btnClearTech"
+          onclick="clearTechFilter()"
+          class="hidden shrink-0 text-[10px] font-bold uppercase px-2 py-1 rounded bg-[#FF5A0A] text-white hover:bg-[#e04d06] transition"
+        >
+          LIMPIAR
+        </button>
+      </div>
+
+      <!-- Filtro de Zona dentro del panel lateral -->
+      <div class="p-2.5 border-b border-slate-200 bg-slate-50">
+        <div class="inline-flex rounded-lg border border-slate-300 p-0.5 bg-white w-full">
+          <button id="zoneBtnAll" onclick="setZoneFilter('ALL')" class="flex-1 py-1 rounded-md text-[10px] font-extrabold uppercase transition bg-[#FF5A0A] text-white">
+            TODOS
+          </button>
+          <button id="zoneBtnChiclayo" onclick="setZoneFilter('CHICLAYO')" class="flex-1 py-1 rounded-md text-[10px] font-extrabold uppercase transition text-slate-600 hover:text-slate-900">
+            CHICLAYO
+          </button>
+          <button id="zoneBtnLima" onclick="setZoneFilter('LIMA')" class="flex-1 py-1 rounded-md text-[10px] font-extrabold uppercase transition text-slate-600 hover:text-slate-900">
+            LIMA
+          </button>
+        </div>
+      </div>
+
+      <!-- Resumen rápido de Meta 65% -->
+      <div class="grid grid-cols-2 gap-2 p-2.5 border-b border-slate-200 bg-slate-50/60 text-center">
+        <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-1.5">
+          <span class="text-[9px] font-extrabold uppercase text-emerald-700 block">META &ge; 65%</span>
+          <span id="techAboveGoal" class="text-sm font-extrabold text-emerald-800">0</span>
+        </div>
+        <div class="bg-amber-50 border border-amber-200 rounded-lg p-1.5">
+          <span class="text-[9px] font-extrabold uppercase text-amber-700 block">BAJO META (&lt; 65%)</span>
+          <span id="techBelowGoal" class="text-sm font-extrabold text-amber-800">0</span>
+        </div>
+      </div>
+
+      <!-- Listado de Técnicos -->
+      <div id="techEffectivenessList" class="divide-y divide-slate-100 max-h-[65vh] overflow-y-auto p-2.5 space-y-2">
+        <div class="text-center py-8 text-xs font-bold text-slate-400 uppercase">
+          ESPERANDO REGISTROS...
+        </div>
+      </div>
+    </aside>
+
+  </main>
+
+  <!-- MODAL DE EDICIÓN -->
+  <div id="editModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl border-t-4 border-[#FF5A0A] shadow-2xl max-w-lg w-full overflow-hidden">
+      <div class="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between">
+        <div>
+          <h2 class="text-sm font-extrabold uppercase text-slate-900">GESTIONAR SEGUIMIENTO</h2>
+          <p id="modalSubtitle" class="text-[11px] font-bold text-[#FF5A0A] uppercase mt-0.5"></p>
+        </div>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-700 text-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form id="editForm" onsubmit="saveChanges(event)" class="p-5 space-y-4">
+        <input type="hidden" id="editHoja" />
+        <input type="hidden" id="editFila" />
+
+        <div class="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs">
+          <div>
+            <span class="text-[10px] font-bold text-slate-400 block">CLIENTE</span>
+            <span id="infoCliente" class="font-bold text-slate-800 uppercase"></span>
+          </div>
+          <div>
+            <span class="text-[10px] font-bold text-slate-400 block">CÓDIGO / DNI</span>
+            <span id="infoCodDni" class="font-bold text-slate-800 uppercase"></span>
+          </div>
+          <div>
+            <span class="text-[10px] font-bold text-slate-400 block">REF-1 / REF-2</span>
+            <span id="infoRefs" class="font-bold text-slate-800 uppercase"></span>
+          </div>
+          <div>
+            <span class="text-[10px] font-bold text-slate-400 block">ESTADO ACTUAL SHEET</span>
+            <span id="infoEstadoSheet" class="font-bold text-slate-800 uppercase"></span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[11px] font-extrabold uppercase text-slate-700 mb-1">ESTADO</label>
+            <select id="editEstado" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold uppercase focus:outline-none focus:border-[#FF5A0A]">
+              <option value="COORDINADO">COORDINADO</option>
+              <option value="FINALIZADO">FINALIZADO</option>
+              <option value="CANCELADO">CANCELADO</option>
+              <option value="AUSENTE">AUSENTE</option>
+              <option value="REPROGRAMA">REPROGRAMA</option>
+              <option value="EN CAMINO">EN CAMINO</option>
+              <option value="EN PROCESO">EN PROCESO</option>
+              <option value="TRANSFERIR">TRANSFERIR</option>
+              <option value="ZONA PELIGROSA">ZONA PELIGROSA</option>
+              <option value="PROGRAMADO">PROGRAMADO</option>
+              <option value="PLANTA">PLANTA</option>
+              <option value="DUPLICADO">DUPLICADO</option>
+              <option value="REITERATIVO">REITERATIVO</option>
+              <option value="RESCATE">RESCATE</option>
+              <option value="SIN FACILIDADES TÉCNICAS">SIN FACILIDADES TÉCNICAS</option>
+              <option value="REGESTION">REGESTION</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-extrabold uppercase text-slate-700 mb-1">TRAMO HORARIO</label>
+            <select id="editTramo" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold uppercase focus:outline-none focus:border-[#FF5A0A]">
+              <option value="">-- SELECCIONAR --</option>
+              <option value="08AM-12PM">08AM-12PM</option>
+              <option value="12PM-16PM">12PM-16PM</option>
+              <option value="16PM-20PM">16PM-20PM</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-extrabold uppercase text-slate-700 mb-1">OBSERVACIONES / CONTEXTO</label>
+          <textarea
+            id="editObservaciones"
+            rows="3"
+            required
+            placeholder="INGRESE DETALLE DE LA COORDINACIÓN..."
+            class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold uppercase focus:outline-none focus:border-[#FF5A0A]"
+          ></textarea>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+          <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-lg text-xs font-bold uppercase text-slate-600 hover:bg-slate-100">
+            CANCELAR
+          </button>
+          <button type="submit" id="btnSave" class="btn-primary px-5 py-2 rounded-lg text-xs font-bold uppercase shadow flex items-center gap-2">
+            <i class="fa-solid fa-floppy-disk"></i> GUARDAR EN SHEET
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyu7mnm-hPrFGLMpR90GpmCSwnk5iuvaWf06UmXlC1MnbIZWFIPtePY-pW_hRXJOCpT0Q/exec";
+
+    const META_EFECTIVIDAD = 65;
+
+    // Técnicos asignados a Chiclayo
+    const TECNICOS_CHICLAYO = [
+      "JONNY VEGA",
+      "JORGE CHAFLOQUE",
+      "LUIS CARRION"
+    ];
+
+    const ESTADOS_VALIDOS = [
+      "COORDINADO",
+      "FINALIZADO",
+      "CANCELADO",
+      "AUSENTE",
+      "REPROGRAMA",
+      "EN CAMINO",
+      "EN PROCESO",
+      "TRANSFERIR",
+      "ZONA PELIGROSA",
+      "PROGRAMADO",
+      "PLANTA",
+      "DUPLICADO",
+      "REITERATIVO",
+      "RESCATE",
+      "SIN FACILIDADES TÉCNICAS",
+      "REGESTION"
+    ];
+
+    // Colores distintos por cada estado
+    const ESTADO_STYLES = {
+      "COORDINADO": "background-color: #ffedd5; color: #FF5A0A; border: 1px solid #fed7aa;",
+      "FINALIZADO": "background-color: #e2e8f0; color: #1e3a8a; border: 1px solid #cbd5e1;",
+      "CANCELADO": "background-color: #7f1d1d; color: #ffffff; border: 1px solid #450a0a;",
+      "AUSENTE": "background-color: #fee2e2; color: #b91c1c; border: 1px solid #fecaca;",
+      "REPROGRAMA": "background-color: #fef9c3; color: #a16207; border: 1px solid #fef08a;",
+      "EN CAMINO": "background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd;",
+      "EN PROCESO": "background-color: #ede9fe; color: #6d28d9; border: 1px solid #ddd6fe;",
+      "TRANSFERIR": "background-color: #fce7f3; color: #be185d; border: 1px solid #fbcfe8;",
+      "ZONA PELIGROSA": "background-color: #ffe4e6; color: #9f1239; border: 1px solid #fecdd3;",
+      "PROGRAMADO": "background-color: #dbeafe; color: #1d4ed8; border: 1px solid #bfdbfe;",
+      "PLANTA": "background-color: #ccfbf1; color: #0f766e; border: 1px solid #99f6e4;",
+      "DUPLICADO": "background-color: #f3e8ff; color: #7e22ce; border: 1px solid #e9d5ff;",
+      "REITERATIVO": "background-color: #ffedd5; color: #c2410c; border: 1px solid #fdba74;",
+      "RESCATE": "background-color: #d1fae5; color: #047857; border: 1px solid #a7f3d0;",
+      "SIN FACILIDADES TÉCNICAS": "background-color: #f1f5f9; color: #334155; border: 1px solid #cbd5e1;",
+      "REGESTION": "background-color: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe;"
+    };
+
+    let allRecords = [];
+    let currentStatusFilter = "ALL"; // 'ALL' o 'PENDIENTES'
+    let currentZoneFilter = "ALL"; // 'ALL', 'CHICLAYO' o 'LIMA'
+    let selectedTechnician = ""; // Filtro opcional al hacer clic en un técnico
+
+    // Orden lógico para los tramos
+    const TRAMO_ORDER = {
+      "08AM-12PM": 1,
+      "12PM-16PM": 2,
+      "16PM-20PM": 3
+    };
+
+    document.addEventListener("DOMContentLoaded", () => {
+      fetchData();
+    });
+
+    function normalizeTec(name) {
+      return (name || "").trim().replace(/\s+/g, " ").toUpperCase();
+    }
+
+    function getTecZone(name) {
+      const norm = normalizeTec(name);
+      if (!norm || norm === "-") return "SIN ASIGNAR";
+      return TECNICOS_CHICLAYO.includes(norm) ? "CHICLAYO" : "LIMA";
+    }
+
+    async function fetchData() {
+      const syncIcon = document.getElementById("syncIcon");
+      const statusInd = document.getElementById("statusIndicator");
+      syncIcon.classList.add("fa-spin");
+      statusInd.innerHTML = `<i class="fa-solid fa-circle text-[8px] mr-1 text-amber-500"></i> SINCRONIZANDO...`;
+
+      try {
+        // Sin caché local, consulta directa al endpoint
+        const response = await fetch(`${SCRIPT_URL}?t=${new Date().getTime()}`);
+        const json = await response.json();
+
+        if (json.status === "ok") {
+          allRecords = json.data || [];
+          updateCounters();
+          renderTechEffectiveness();
+          applyFilters();
+          statusInd.innerHTML = `<i class="fa-solid fa-circle text-[8px] mr-1 text-emerald-500"></i> EN LÍNEA (${allRecords.length})`;
+        } else {
+          alert("ERROR AL LEER DATOS: " + json.message);
+        }
+      } catch (error) {
+        console.error(error);
+        statusInd.innerHTML = `<i class="fa-solid fa-circle text-[8px] mr-1 text-red-500"></i> ERROR DE CONEXIÓN`;
+      } finally {
+        syncIcon.classList.remove("fa-spin");
+      }
+    }
+
+    function updateCounters() {
+      const total = allRecords.length;
+      const pendientes = allRecords.filter(r =>
+        r.estado === "COORDINADO" || r.estado === "PROGRAMADO"
+      ).length;
+
+      document.getElementById("countAll").textContent = total;
+      document.getElementById("countPend").textContent = pendientes;
+    }
+
+    function setStatusFilter(filter) {
+      currentStatusFilter = filter;
+      const btnAll = document.getElementById("btnFilterAll");
+      const btnPend = document.getElementById("btnFilterPend");
+
+      if (filter === "ALL") {
+        btnAll.className = "px-2.5 py-1 rounded-md text-xs font-bold uppercase transition bg-[#FF5A0A] text-white";
+        btnPend.className = "px-2.5 py-1 rounded-md text-xs font-bold uppercase transition text-slate-600 hover:text-slate-900";
+      } else {
+        btnPend.className = "px-2.5 py-1 rounded-md text-xs font-bold uppercase transition bg-[#FF5A0A] text-white";
+        btnAll.className = "px-2.5 py-1 rounded-md text-xs font-bold uppercase transition text-slate-600 hover:text-slate-900";
+      }
+      applyFilters();
+    }
+
+    function setZoneFilter(zone) {
+      currentZoneFilter = zone;
+      const buttons = {
+        ALL: document.getElementById("zoneBtnAll"),
+        CHICLAYO: document.getElementById("zoneBtnChiclayo"),
+        LIMA: document.getElementById("zoneBtnLima")
+      };
+
+      Object.keys(buttons).forEach(key => {
+        if (key === zone) {
+          buttons[key].className = "flex-1 py-1 rounded-md text-[10px] font-extrabold uppercase transition bg-[#FF5A0A] text-white";
+        } else {
+          buttons[key].className = "flex-1 py-1 rounded-md text-[10px] font-extrabold uppercase transition text-slate-600 hover:text-slate-900";
+        }
+      });
+
+      renderTechEffectiveness();
+    }
+
+    function toggleTechFilter(encodedTec) {
+      const tecName = decodeURIComponent(encodedTec);
+      if (selectedTechnician === tecName) {
+        selectedTechnician = "";
+      } else {
+        selectedTechnician = tecName;
+      }
+      document.getElementById("btnClearTech").classList.toggle("hidden", !selectedTechnician);
+      renderTechEffectiveness();
+      applyFilters();
+    }
+
+    function clearTechFilter() {
+      selectedTechnician = "";
+      document.getElementById("btnClearTech").classList.add("hidden");
+      renderTechEffectiveness();
+      applyFilters();
+    }
+
+    // Calcula efectividad por técnico y cuántos FINALIZADO faltan para llegar al 65%
+    function renderTechEffectiveness() {
+      const container = document.getElementById("techEffectivenessList");
+      const statsMap = new Map();
+
+      allRecords.forEach(r => {
+        const tec = normalizeTec(r.tecnico);
+        if (!tec || tec === "-") return;
+
+        const zona = getTecZone(tec);
+        if (currentZoneFilter !== "ALL" && zona !== currentZoneFilter) return;
+
+        if (!statsMap.has(tec)) {
+          statsMap.set(tec, {
+            tecnico: tec,
+            zona: zona,
+            total: 0,
+            finalizados: 0
+          });
+        }
+
+        const entry = statsMap.get(tec);
+        entry.total += 1;
+        if ((r.estado || "").trim().toUpperCase() === "FINALIZADO") {
+          entry.finalizados += 1;
+        }
+      });
+
+      const list = Array.from(statsMap.values()).map(item => {
+        const pct = item.total > 0 ? (item.finalizados / item.total) * 100 : 0;
+        const cumple = pct >= META_EFECTIVIDAD;
+
+        // Cálculo de finalizados adicionales necesarios para alcanzar 65%:
+        // (F + x) / (T + x) >= 0.65  =>  F + x >= 0.65*T + 0.65*x  =>  0.35*x >= 0.65*T - F
+        let faltanParaMeta = 0;
+        if (!cumple && item.total > 0) {
+          const req = Math.ceil((0.65 * item.total - item.finalizados) / (1 - 0.65));
+          faltanParaMeta = Math.max(1, req);
+        }
+
+        return {
+          ...item,
+          pct,
+          cumple,
+          faltanParaMeta
+        };
+      });
+
+      // Ordenar de mayor a menor efectividad
+      list.sort((a, b) => b.pct - a.pct || b.finalizados - a.finalizados);
+
+      const aboveCount = list.filter(x => x.cumple).length;
+      const belowCount = list.filter(x => !x.cumple).length;
+      document.getElementById("techAboveGoal").textContent = aboveCount;
+      document.getElementById("techBelowGoal").textContent = belowCount;
+
+      if (list.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-8 text-xs font-bold text-slate-400 uppercase">
+            SIN TÉCNICOS ASIGNADOS PARA ESTE FILTRO
+          </div>`;
+        return;
+      }
+
+      container.innerHTML = list.map(t => {
+        const isSelected = selectedTechnician === t.tecnico;
+        const pctFormatted = t.pct.toFixed(1);
+        const barWidth = Math.min(100, Math.max(0, t.pct)).toFixed(1);
+
+        const zoneBadge = t.zona === "CHICLAYO"
+          ? `<span class="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-orange-100 text-[#FF5A0A] border border-orange-200 shrink-0">CHICLAYO</span>`
+          : `<span class="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 shrink-0">LIMA</span>`;
+
+        const metaBadge = t.cumple
+          ? `<span class="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+               <i class="fa-solid fa-check mr-0.5"></i>META 65%
+             </span>`
+          : `<span class="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+               +${t.faltanParaMeta} FIN. PARA 65%
+             </span>`;
+
+        const barColor = t.cumple ? "bg-emerald-500" : (t.pct >= 45 ? "bg-amber-500" : "bg-red-500");
+
+        return `
+          <div
+            onclick="toggleTechFilter('${encodeURIComponent(t.tecnico).replace(/'/g, "%27")}')"
+            class="p-2 rounded-xl border cursor-pointer transition ${
+              isSelected
+                ? "border-[#FF5A0A] bg-orange-50/70 ring-1 ring-[#FF5A0A]"
+                : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/70"
+            }"
+          >
+            <div class="flex items-center justify-between gap-1.5 mb-1">
+              <div class="flex items-center gap-1 min-w-0">
+                <span class="text-[11px] font-extrabold uppercase text-slate-900 truncate">${t.tecnico}</span>
+                ${zoneBadge}
+              </div>
+              <span class="text-[11px] font-extrabold shrink-0 ${t.cumple ? "text-emerald-700" : "text-slate-800"}">${pctFormatted}%</span>
+            </div>
+
+            <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mb-1">
+              <div class="h-full ${barColor} transition-all duration-300" style="width: ${barWidth}%"></div>
+            </div>
+
+            <div class="flex items-center justify-between gap-1 text-[9px] font-bold uppercase text-slate-500">
+              <span>FIN: <strong class="text-slate-800">${t.finalizados}</strong> / TOT: <strong class="text-slate-800">${t.total}</strong></span>
+              ${metaBadge}
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function applyFilters() {
+      const query = document.getElementById("searchInput").value.trim().toUpperCase();
+      const sheetFilter = document.getElementById("sheetFilter").value;
+      const tramoFilter = document.getElementById("tramoFilter").value;
+      const estadoFilter = document.getElementById("estadoFilter").value;
+
+      let filtered = allRecords.filter(r => {
+        // Filtro por hoja
+        if (sheetFilter !== "ALL" && r.hoja !== sheetFilter) return false;
+
+        // Filtro por tramo
+        if (tramoFilter !== "ALL" && (r.tramo || "").toUpperCase() !== tramoFilter) return false;
+
+        // Filtro por estado específico
+        if (estadoFilter !== "ALL" && (r.estado || "").toUpperCase() !== estadoFilter) return false;
+
+        // Filtro por técnico seleccionado en el panel lateral
+        if (selectedTechnician && normalizeTec(r.tecnico) !== selectedTechnician) return false;
+
+        // Filtro por estado (TODOS vs PENDIENTES)
+        if (currentStatusFilter === "PENDIENTES") {
+          if (r.estado !== "COORDINADO" && r.estado !== "PROGRAMADO") return false;
+        }
+
+        // Búsqueda por UNICODE, CODIGO, CLIENTE, DNI, REF-1, REF-2
+        if (query) {
+          const match =
+            (r.unicode && r.unicode.toUpperCase().includes(query)) ||
+            (r.codigo && r.codigo.toUpperCase().includes(query)) ||
+            (r.cliente && r.cliente.toUpperCase().includes(query)) ||
+            (r.dni && r.dni.toUpperCase().includes(query)) ||
+            (r.ref1 && r.ref1.toUpperCase().includes(query)) ||
+            (r.ref2 && r.ref2.toUpperCase().includes(query));
+          if (!match) return false;
+        }
+
+        return true;
+      });
+
+      // Ordenar por TRAMO (08AM-12PM -> 12PM-16PM -> 16PM-20PM -> Sin tramo al final)
+      filtered.sort((a, b) => {
+        const orderA = TRAMO_ORDER[a.tramo] || 99;
+        const orderB = TRAMO_ORDER[b.tramo] || 99;
+        return orderA - orderB;
+      });
+
+      renderTable(filtered);
+    }
+
+    function getEstadoBadge(estado) {
+      const est = (estado || "").toUpperCase();
+      if (!est) {
+        return `<span class="px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-bold border border-slate-200">-</span>`;
+      }
+      const style = ESTADO_STYLES[est] || "background-color: #f1f5f9; color: #334155; border: 1px solid #cbd5e1;";
+      return `<span class="px-2 py-0.5 rounded font-extrabold inline-block" style="${style}">${est}</span>`;
+    }
+
+    function renderTable(records) {
+      const tbody = document.getElementById("tableBody");
+
+      if (records.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="16" class="text-center py-8 text-slate-400 font-bold">
+              NO SE ENCONTRARON REGISTROS CON LOS FILTROS ACTUALES
+            </td>
+          </tr>`;
+        return;
+      }
+
+      tbody.innerHTML = records.map((r) => {
+        const rowData = encodeURIComponent(JSON.stringify(r));
+        return `
+          <tr class="hover:bg-orange-50/50 transition">
+            <td class="text-center">
+              <button
+                onclick="openEditModal('${rowData}')"
+                title="EDITAR REGISTRO"
+                class="w-7 h-7 rounded-md bg-slate-100 hover:bg-[#FF5A0A] text-slate-700 hover:text-white transition inline-flex items-center justify-center shadow-2xs"
+              >
+                <i class="fa-solid fa-pen-to-square text-xs"></i>
+              </button>
+            </td>
+            <td class="font-bold text-slate-500">${r.hoja}</td>
+            <td class="font-mono font-bold text-slate-900">${r.unicode || "-"}</td>
+            <td class="font-bold text-slate-800">${r.tramo || "-"}</td>
+            <td>${getEstadoBadge(r.estado)}</td>
+            <td>${r.negocio || "-"}</td>
+            <td class="font-bold">${r.codigo || "-"}</td>
+            <td class="font-semibold text-slate-900">${r.cliente || "-"}</td>
+            <td>${r.dni || "-"}</td>
+            <td class="max-w-[220px] truncate" title="${r.direccion}">${r.direccion || "-"}</td>
+            <td>${r.distrito || "-"}</td>
+            <td>${r.ref1 || "-"}</td>
+            <td>${r.ref2 || "-"}</td>
+            <td>${r.tecnico || "-"}</td>
+            <td>${r.celTecnico || "-"}</td>
+            <td class="max-w-[250px] truncate text-slate-600" title="${r.observaciones}">${r.observaciones || "-"}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function openEditModal(encodedRecord) {
+      const r = JSON.parse(decodeURIComponent(encodedRecord));
+
+      document.getElementById("editHoja").value = r.hoja;
+      document.getElementById("editFila").value = r.fila;
+      document.getElementById("modalSubtitle").textContent = `${r.hoja} | FILA #${r.fila} | ID: ${r.unicode}`;
+      document.getElementById("infoCliente").textContent = r.cliente || "-";
+      document.getElementById("infoCodDni").textContent = `${r.codigo || "-"} / ${r.dni || "-"}`;
+      document.getElementById("infoRefs").textContent = `${r.ref1 || "-"} / ${r.ref2 || "-"}`;
+      document.getElementById("infoEstadoSheet").textContent = r.estadoOriginalSheet || "-";
+
+      const selectEstado = document.getElementById("editEstado");
+      const estadoActual = (r.estado || "").toUpperCase();
+      if (estadoActual && !ESTADOS_VALIDOS.includes(estadoActual)) {
+        const opt = document.createElement("option");
+        opt.value = estadoActual;
+        opt.textContent = estadoActual;
+        opt.dataset.temp = "true";
+        selectEstado.appendChild(opt);
+      }
+      selectEstado.value = estadoActual || "COORDINADO";
+
+      document.getElementById("editTramo").value = ["08AM-12PM", "12PM-16PM", "16PM-20PM"].includes(r.tramo) ? r.tramo : "";
+      document.getElementById("editObservaciones").value = r.observaciones || "";
+
+      const modal = document.getElementById("editModal");
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+    }
+
+    function closeModal() {
+      const selectEstado = document.getElementById("editEstado");
+      Array.from(selectEstado.options).forEach(opt => {
+        if (opt.dataset.temp) opt.remove();
+      });
+
+      const modal = document.getElementById("editModal");
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+    }
+
+    async function saveChanges(e) {
+      e.preventDefault();
+      const btnSave = document.getElementById("btnSave");
+      btnSave.disabled = true;
+      btnSave.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> GUARDANDO...`;
+
+      const payload = {
+        hoja: document.getElementById("editHoja").value,
+        fila: parseInt(document.getElementById("editFila").value, 10),
+        estado: document.getElementById("editEstado").value.toUpperCase(),
+        tramo: document.getElementById("editTramo").value.toUpperCase(),
+        observaciones: document.getElementById("editObservaciones").value.toUpperCase()
+      };
+
+      try {
+        const response = await fetch(SCRIPT_URL, {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+        const res = await response.json();
+
+        if (res.status === "ok") {
+          closeModal();
+          await fetchData();
+        } else {
+          alert("ERROR AL GUARDAR: " + res.message);
+        }
+      } catch (error) {
+        console.error(error);
+        alert("ERROR DE RED AL GUARDAR EN GOOGLE SHEETS.");
+      } finally {
+        btnSave.disabled = false;
+        btnSave.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> GUARDAR EN SHEET`;
+      }
+    }
+  </script>
+</body>
+</html>
